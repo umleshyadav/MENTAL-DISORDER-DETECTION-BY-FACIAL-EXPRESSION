@@ -1,0 +1,23 @@
+# Dataset - too large for GitHub
+minor6282/datasets/
+
+# Trained model weights (large binary files)
+minor6282/*.pth
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Virtual environment
+venv/
+env/
+.env/
+
+# IDE / OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
