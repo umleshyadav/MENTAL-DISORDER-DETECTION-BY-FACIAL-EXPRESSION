@@ -2,11 +2,11 @@ import streamlit as st
 import cv2
 import torch
 import numpy as np
-import timm
 import matplotlib.pyplot as plt
 import time
-from torchvision import transforms
 import base64
+from vit_model import load_vit, load_lstm, EMOTIONS, LSTMModel
+from utils import get_inference_transform, predict_emotion, predict_mental_state, plot_emotion_sequence, plot_emotion_bar, STATES
 
 st.set_page_config(layout="wide")
 
@@ -17,49 +17,15 @@ def get_base64(img_file):
 
 img = get_base64("b.jpg")
 
-EMOTIONS = ["Angry","Disgust","Fear","Happy","Neutral","Sad","Surprise"]
-STATES = ["Stable","Depression-like","Anxiety-like"]
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-vit = timm.create_model("vit_tiny_patch16_224", pretrained=False)
-
-vit.head = torch.nn.Sequential(
-    torch.nn.Linear(vit.head.in_features, 256),
-    torch.nn.ReLU(),
-    torch.nn.Dropout(0.5),
-    torch.nn.Linear(256, 7)
-)
-
-vit.load_state_dict(torch.load("best_vit.pth", map_location=device))
-vit.to(device)
-vit.eval()
-
-class LSTMModel(torch.nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.lstm = torch.nn.LSTM(7, 64, batch_first=True)
-        self.fc = torch.nn.Linear(64, 3)
-
-    def forward(self, x):
-        out, _ = self.lstm(x)
-        return self.fc(out[:, -1, :])
-
-lstm = LSTMModel()
-lstm.load_state_dict(torch.load("lstm_model.pth", map_location=device))
-lstm.to(device)
-lstm.eval()
-
-transform = transforms.Compose([
-    transforms.ToPILImage(),
-    transforms.Resize((224,224)),
-    transforms.ToTensor(),
-    transforms.Normalize([0.5]*3, [0.5]*3)
-])
+vit       = load_vit("best_vit.pth", device=device)
+lstm      = load_lstm("lstm_model.pth", device=device)
+transform = get_inference_transform()
 
 def preprocess(frame):
-    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    img = transform(frame).unsqueeze(0)
-    return img.to(device)
+    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    return transform(rgb).unsqueeze(0).to(device)
 
 if "running" not in st.session_state:
     st.session_state.running = False
